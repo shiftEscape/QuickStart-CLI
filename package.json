@@ -4,10 +4,13 @@
   "description": "A command line tool for creating initial files to quickstart Angular2 projects",
   "main": "index.js",
   "dependencies": {
+    "chalk": "^1.1.3",
+    "cli-spinners": "^0.2.0",
     "commander": "^2.9.0",
     "fs": "0.0.1-security",
     "fs-extra": "^0.30.0",
-    "mkdirp": "^0.5.1"
+    "mkdirp": "^0.5.1",
+    "ora": "^0.3.0"
   },
   "devDependencies": {},
   "scripts": {
