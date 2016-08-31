@@ -13,7 +13,6 @@ var childProcess = require('child_process');
 var exec = childProcess.exec;
 var execFile = childProcess.execFile;
 
-
 function fsExistsSync(myDir) {
 	try {
 		fs.accessSync(myDir);
@@ -42,6 +41,20 @@ function installMods (projectName) {
 	});
 }
 
+function startProcess(path, projectName) {
+	fse.copy(path, projectName, function (err) {
+		execFile('find', [ projectName ], function(err, stdout, stderr) {
+			var file_list = stdout.split('\n');
+			file_list.splice(-1, 1);
+			for (var i in file_list) {
+				console.log(chalk.green('created') + ' ' + file_list[i]);
+			} console.log('\n');
+			runLoading('Installing packages for tooling via NPM..');
+			installMods(projectName);
+		});
+	});
+}
+
 program
 	.option('-n, --new <project name>', 'The project name to be created')
 	.parse(process.argv);
@@ -54,17 +67,7 @@ if (projectName) {
 			if (err) { console.error(err); }
 			else {
 				var path = __dirname + '/files/';
-				fse.copy(path, projectName, function (err) {
-					execFile('find', [ projectName ], function(err, stdout, stderr) {
-					  var file_list = stdout.split('\n');
-						file_list.splice(-1, 1);
-						for (var i in file_list) {
-							console.log(chalk.green('created') + ' ' + file_list[i]);
-						} console.log('\n');
-						runLoading('Installing packages for tooling via NPM..');
-						installMods(projectName);
-					});
-				});
+				startProcess(path, projectName);
 			}
 		});
 	} else {
