@@ -1,2 +1,3 @@
 /files/app/*.js
 /files/app/*.js.map
+node_modules/**
