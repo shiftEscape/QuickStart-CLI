@@ -1,0 +1,29 @@
+{
+  "name": "quickstart-cli",
+  "version": "1.0.0",
+  "description": "A command line tool for creating initial files to quickstart Angular2 projects",
+  "main": "index.js",
+  "dependencies": {
+    "commander": "^2.9.0",
+    "fs": "0.0.1-security",
+    "fs-extra": "^0.30.0",
+    "mkdirp": "^0.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shiftescape/QuickStart-CLI.git"
+  },
+  "author": "Alvin James Bellero <ajames.bellero@gmail.com>",
+  "license": "ISC",
+  "bin": {
+    "qs": "./index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/shiftescape/QuickStart-CLI/issues"
+  },
+  "homepage": "https://github.com/shiftescape/QuickStart-CLI#readme"
+}
