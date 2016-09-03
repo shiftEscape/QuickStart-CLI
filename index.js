@@ -202,7 +202,7 @@ var classCLI = {
 				classCLI.logError('Application module not found!');
 			} else {
 				fs.readFile(source, 'utf8', function (err, data) {
-					replaceRegex    = new RegExp(/(imports:[^]+?\]\,)/, 'i');
+					replaceRegex    = /(imports:[^]+?\]\,)/i;
 					replaceLocation = data.match(replaceRegex);
 					listModules     = replaceLocation[0].match(/(?!imports\b)\b\w+/ig);
 					if (listModules === null) { listModules = []; } listModules.push(featureName);
