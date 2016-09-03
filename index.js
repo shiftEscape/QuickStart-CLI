@@ -207,7 +207,7 @@ var classCLI = {
 					listModules     = replaceLocation[0].match(/(?!declarations\b)\b\w+/ig);
 					if (listModules === null) { listModules = []; } listModules.push(featureName);
 					listModules     = _.uniq(listModules, false);
-					newImports      = "imports: [ " + listModules.join(", ") + " ],";
+					newImports      = "declarations: [ " + listModules.join(", ") + " ],";
 					classCLI.writeToFile(source, data.replace(replaceRegex, newImports));
 				});
 			}
