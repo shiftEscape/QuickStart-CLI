@@ -202,9 +202,9 @@ var classCLI = {
 				classCLI.logError('Application module not found!');
 			} else {
 				fs.readFile(source, 'utf8', function (err, data) {
-					replaceRegex    = /(imports:[^]+?\]\,)/i;
+					replaceRegex    = /(declarations:[^]+?\]\,)/i;
 					replaceLocation = data.match(replaceRegex);
-					listModules     = replaceLocation[0].match(/(?!imports\b)\b\w+/ig);
+					listModules     = replaceLocation[0].match(/(?!declarations\b)\b\w+/ig);
 					if (listModules === null) { listModules = []; } listModules.push(featureName);
 					listModules     = _.uniq(listModules, false);
 					newImports      = "imports: [ " + listModules.join(", ") + " ],";
