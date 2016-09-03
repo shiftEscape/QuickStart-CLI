@@ -9,6 +9,7 @@
     "commander": "^2.9.0",
     "fs": "0.0.1-security",
     "fs-extra": "^0.30.0",
+    "lodash": "^4.15.0",
     "mkdirp": "^0.5.1",
     "ora": "^0.3.0"
   },
