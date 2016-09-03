@@ -1,9 +1,10 @@
 #!/usr/bin/env node
+var _       = require('lodash');
+var fs      = require('fs');
+var fse     = require('fs-extra');
+var chalk   = require('chalk');
+var mkdirp  = require('mkdirp');
 var program = require('commander');
-var mkdirp = require('mkdirp');
-var chalk = require('chalk');
-var fs  = require('fs');
-var fse = require('fs-extra');
 
 var ora = require('ora');
 var cliSpinners = require('cli-spinners');
@@ -13,7 +14,8 @@ var childProcess = require('child_process');
 var exec = childProcess.exec;
 var execFile = childProcess.execFile;
 
-var projectName, generateName;
+var projectName, generateName, replaceRegex,
+		replaceLocation, listModules, newImports;
 
 /* Blueprint contents */
 var featureMap = {
@@ -27,6 +29,15 @@ var featureMap = {
 	'service': "import { Injectable } from '@angular/core';\r\n\r\n@Injectable()\r\nexport class {!CLASSNAME}Service {\r\n\r\n   constructor() { }\r\n\r\n}",
 	'pipe': "import { Pipe, PipeTransform } from '@angular/core';\r\n\r\n@Pipe({\r\n\tname: '{!PIPENAME}'\r\n})\r\nexport class {!CLASSNAME}Pipe implements PipeTransform {\r\n\r\n\ttransform(value: any, args?: any): any {\r\n\t\treturn null;\r\n}\r\n\r\n}",
 };
+
+/* Application module source map */
+var sourceMap = [
+	'./app/app.module.ts',
+	'./app.module.ts',
+	'../app.module.ts',
+	'../../app.module.ts',
+	'../../../app.module.ts'
+];
 
 /* String prototype methods */
 String.prototype.toCamelCase = function() {
@@ -74,6 +85,14 @@ var classCLI = {
 		spinner.text = chalk.green(text);
 	},
 
+	logInfo: function (info) {
+		console.log(chalk.green(info));
+	},
+
+	logError: function (error) {
+		console.log(chalk.red(error));
+	},
+
 	/**
 	 * Install packages for tooling via NPM
 	 * @param projectName <string> New project name | location to be created
@@ -81,9 +100,9 @@ var classCLI = {
 	installModules: function (projectName) {
 		exec("cd " + projectName + " && npm i", function (error, stdout, stderr) {
 			if (stderr) {
-				console.log(chalk.red('Errors: ') + stderr);
+				classCLI.logError('Errors: ' + stderr);
 			} else if (error !== null) {
-				console.log(chalk.red('Execution errors: ') + error);
+				classCLI.logError('Execution errors: ' + error);
 			}
 			console.log(stdout);
 			spinner.succeed();
@@ -119,9 +138,9 @@ var classCLI = {
 	writeToFile: function (filename, data) {
 		fs.writeFile(filename, data, function (err) {
 			if (err)
-				console.log(chalk.red('   Error in creating '+filename));
+				classCLI.logError('   Error: ' + filename);
 			else
-				console.log(chalk.green('   Created') + ' ' + filename);
+				classCLI.logInfo('   Created' + ' ' + filename);
 		})
 	},
 
@@ -134,7 +153,7 @@ var classCLI = {
 		var componentFiles = featureMap[args.feature];
 
 		mkdirp(selectorName, function (err) {
-			if (err) { console.log(chalk.red(err)); }
+			if (err) { classCLI.logError(err); }
 			else {
 				for(var key in componentFiles) {
 					var filename = key.replace(/\{\!SELECTOR\}/g, args.selector);
@@ -151,18 +170,48 @@ var classCLI = {
 	 * @param args <object> List of needed constants
 	 */
 	generateBlueprints: function (args) {
-		if (args.feature in featureMap) {
-			if (args.feature === 'component') {
-				classCLI.createComponentFiles(args);
-			} else {
-				var replaceSelector = featureMap[args.feature].replace(/\{\!SELECTOR\}/g, args.selector);
-				var replacePipe = replaceSelector.replace(/\{\!PIPENAME\}/g, args.pipeName);
-				var dataToWrite = replacePipe.replace(/\{\!CLASSNAME\}/g, args.className);
-				classCLI.writeToFile(args.selector+'.'+args.feature+'.ts', dataToWrite);
-			}
+		if (args.feature === 'component') {
+			classCLI.createComponentFiles(args);
 		} else {
-			console.log(chalk.red('Invalid blueprint: `' + args.feature + '`'));
-		}
+			var replaceSelector = featureMap[args.feature].replace(/\{\!SELECTOR\}/g, args.selector);
+			var replacePipe     = replaceSelector.replace(/\{\!PIPENAME\}/g, args.pipeName);
+			var dataToWrite     = replacePipe.replace(/\{\!CLASSNAME\}/g, args.className);
+			classCLI.writeToFile(args.selector+'.'+args.feature+'.ts', dataToWrite);
+		} classCLI.insertFeatureToModule(args.className + args.feature.uCaseFirst());
+	},
+
+	/**
+	 * Search for <app.module.ts> within the directory
+	 * @param cb <method> Callback method to call after success
+	 */
+	searchModuleFile: function (cb) {
+		for(var i in sourceMap) {
+			if (classCLI.fsExistsSync(sourceMap[i])) {
+				cb(sourceMap[i]); return false;
+			}
+		} cb(null);
+	},
+
+	/**
+	 * Rewrites <app.module.ts> to insert the newly created feature
+	 * @param featureName <string> Feature name to be created
+	 */
+	insertFeatureToModule: function (featureName) {
+		classCLI.searchModuleFile( function (source) {
+			if (source === null) {
+				classCLI.logError('Application module not found!');
+			} else {
+				fs.readFile(source, 'utf8', function (err, data) {
+					replaceRegex    = new RegExp(/(imports:[^]+?\]\,)/, 'i');
+					replaceLocation = data.match(replaceRegex);
+					listModules     = replaceLocation[0].match(/(?!imports\b)\b\w+/ig);
+					if (listModules === null) { listModules = []; } listModules.push(featureName);
+					listModules     = _.uniq(listModules, false);
+					newImports      = "imports: [ " + listModules.join(", ") + " ],";
+					classCLI.writeToFile(source, data.replace(replaceRegex, newImports));
+				});
+			}
+		});
 	}
 
 };
@@ -179,23 +228,32 @@ program
 /* Fetch | Assign input from user */
 projectName = program.new; generateName = program.generate;
 
-if (projectName) {
+/* Fail fast: Display error in invalid blueprints */
+if (program.args.length < 1 || !(program.generate in featureMap)) {
+
+	classCLI.logError('Invalid blueprint: `' + generateName + '`');
+
+} else if (projectName) {
+
 	if(!classCLI.fsExistsSync(projectName)) {
 		mkdirp(projectName, function (err) {
-			if (err) { console.log(chalk.red(err)); }
+			if (err) { classCLI.logError(err); }
 			else {
 				var path = __dirname + '/files/';
 				classCLI.startProcess(path, projectName);
 			}
 		});
 	} else {
-		console.log(chalk.red('Directory `' + projectName + '` already exists. Please try a new one'));
+		classCLI.logError('Directory `' + projectName + '` already exists. Please try a new one');
 	}
-} else if (generateName) {
+
+} else if (generateName && program.args.length > 0) {
+
 	classCLI.generateBlueprints({
 		feature: generateName.toLowerCase(),
 		selector:  program.args[0].toHyphen(),
 		pipeName: program.args[0].toCamelCase(),
 		className: program.args[0].toCamelCase().uCaseFirst()
 	});
+
 }
