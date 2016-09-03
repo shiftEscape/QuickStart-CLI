@@ -229,7 +229,7 @@ program
 projectName = program.new; generateName = program.generate;
 
 /* Fail fast: Display error in invalid blueprints */
-if (program.args.length < 1 || !(program.generate in featureMap)) {
+if (!program.new && (program.args.length < 1 || !(program.generate in featureMap))) {
 
 	classCLI.logError('Invalid blueprint: `' + generateName + '`');
 
