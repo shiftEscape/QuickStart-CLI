@@ -5,6 +5,7 @@ var fse     = require('fs-extra');
 var chalk   = require('chalk');
 var mkdirp  = require('mkdirp');
 var program = require('commander');
+var path    = require('path');
 
 var ora = require('ora');
 var cliSpinners = require('cli-spinners');
@@ -14,8 +15,9 @@ var childProcess = require('child_process');
 var exec = childProcess.exec;
 var execFile = childProcess.execFile;
 
-var projectName, generateName, replaceRegex,
-		replaceLocation, listModules, newImports;
+var projectName, generateName, replaceRegex, frmSrc, newSrc,
+		replaceLocation, listModules, newImports, _list, createDir,
+		replaceRegex = /(declarations:[^]+?\]\,)/i;
 
 /* Blueprint contents */
 var featureMap = {
@@ -36,7 +38,10 @@ var sourceMap = [
 	'./app.module.ts',
 	'../app.module.ts',
 	'../../app.module.ts',
-	'../../../app.module.ts'
+	'../../../app.module.ts',
+	'../app/app.module.ts',
+	'../../app/app.module.ts',
+	'../../../app/app.module.ts'
 ];
 
 /* String prototype methods */
@@ -140,7 +145,7 @@ var classCLI = {
 			if (err)
 				classCLI.logError('   Error: ' + filename);
 			else
-				classCLI.logInfo('   Created' + ' ' + filename);
+				console.log(chalk.green('   Created') + ' ' + filename);
 		})
 	},
 
@@ -149,7 +154,7 @@ var classCLI = {
 	 * @param args <object> List of component needed constants
 	 */
 	createComponentFiles: function (args) {
-		var cwd = process.cwd(), selectorName = args.selector;
+		var selectorName = args.selector;
 		var componentFiles = featureMap[args.feature];
 
 		mkdirp(selectorName, function (err) {
@@ -171,13 +176,15 @@ var classCLI = {
 	 */
 	generateBlueprints: function (args) {
 		if (args.feature === 'component') {
+			createDir = process.cwd() + '/' + args.selector;
 			classCLI.createComponentFiles(args);
 		} else {
+			createDir = process.cwd() + '/' + args.selector + '.' + args.feature + '.ts';
 			var replaceSelector = featureMap[args.feature].replace(/\{\!SELECTOR\}/g, args.selector);
 			var replacePipe     = replaceSelector.replace(/\{\!PIPENAME\}/g, args.pipeName);
 			var dataToWrite     = replacePipe.replace(/\{\!CLASSNAME\}/g, args.className);
 			classCLI.writeToFile(args.selector+'.'+args.feature+'.ts', dataToWrite);
-		} classCLI.insertFeatureToModule(args.className + args.feature.uCaseFirst());
+		} classCLI.insertFeatureToModule(args.className + args.feature.uCaseFirst(), createDir);
 	},
 
 	/**
@@ -192,29 +199,49 @@ var classCLI = {
 		} cb(null);
 	},
 
+	parseModulesList: function (featureName, data) {
+		replaceLocation = data.match(replaceRegex);
+		_list = replaceLocation[0].match(/(?!declarations\b)\b\w+/ig);
+		_list = _list === null ? [] : _list;
+		_list.push(featureName);
+		_list = _.uniq(_list, false);
+		newImports = "declarations: [ " + _list.join(", ") + " ],";
+		return data.replace(replaceRegex, newImports);
+	},
+
+	parseRequiresList: function (featureName, fromSrc, data) {
+		var requireStr = data.match(/(import \{[^\n]+?\;)/g);
+		var moduleStr  = requireStr.join("").match(/(\{[^\n]+?\})/g);
+		var modValues  = moduleStr.join("").match(/(\b\w+)/g);
+		if (_.indexOf(modValues, featureName) < 0) {
+			return data.replace(/(@NgModule\(\{)/, 'import { ' + featureName + ' } from \''+fromSrc+'\';\r\n@NgModule\(\{');
+		}
+	},
+
 	/**
 	 * Rewrites <app.module.ts> to insert the newly created feature
 	 * @param featureName <string> Feature name to be created
 	 */
-	insertFeatureToModule: function (featureName) {
+	insertFeatureToModule: function (featureName, createDir) {
 		classCLI.searchModuleFile( function (source) {
 			if (source === null) {
 				classCLI.logError('Application module not found!');
+				return false;
 			} else {
+				newSrc = path.resolve(source).replace(/\/app\.module\.ts/, '');
+				frmSrc = path.relative(newSrc, createDir);
 				fs.readFile(source, 'utf8', function (err, data) {
-					replaceRegex    = /(declarations:[^]+?\]\,)/i;
-					replaceLocation = data.match(replaceRegex);
-					listModules     = replaceLocation[0].match(/(?!declarations\b)\b\w+/ig);
-					if (listModules === null) { listModules = []; } listModules.push(featureName);
-					listModules     = _.uniq(listModules, false);
-					newImports      = "declarations: [ " + listModules.join(", ") + " ],";
-					classCLI.writeToFile(source, data.replace(replaceRegex, newImports));
+					modRewrite = classCLI.parseModulesList(featureName, data);
+					reqRewrite = classCLI.parseRequiresList(featureName, frmSrc, modRewrite);
+					classCLI.writeToFile(source, reqRewrite);
 				});
 			}
 		});
 	}
 
 };
+
+// (import \{[^\n]+?\;)
 
 /**
  * Parse user input | Using NPM Commander
@@ -223,6 +250,7 @@ var classCLI = {
 program
 	.option('-n, --new <project name>', 'Create a new project')
 	.option('-g, --generate <component|service|directive|pipe> <name>', 'Generates corresponding blueprint files')
+	.option('-t, --test', 'Used for testing')
 	.parse(process.argv);
 
 /* Fetch | Assign input from user */
