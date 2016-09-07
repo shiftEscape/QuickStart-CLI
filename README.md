@@ -1,4 +1,4 @@
-## Quickstart-cli
+## quickstart-cli
 
 A command line tool for creating initial files to quickstart Angular2 projects
 
@@ -43,3 +43,6 @@ Pipe      | `qs -g pipe my-new-pipe`
 Service   | `qs -g service my-new-service`
 
 After generating features, it is automatically declared/ inserted on your `app/app/module.ts`.
+
+## @TODO
+`@ngModules` and `@Routes`
