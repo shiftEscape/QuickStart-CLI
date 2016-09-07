@@ -10,7 +10,7 @@ The generated project has dependencies that require **Node 4.x.x and NPM 3.x.x**
 
 **BEFORE YOU INSTALL:** please read the [prerequisites](#prerequisites)
 ```bash
-npm install -g git+https://github.com/shiftescape/QuickStart-CLI.git
+npm install -g quickstart-cli
 ```
 
 ## Usage
