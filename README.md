@@ -1,6 +1,8 @@
 ## quickstart-cli
 
-A command line tool for creating initial files to quickstart Angular2 projects
+A command line tool for creating initial files to quickstart Angular2 projects.
+
+Based on Angular2 Quickstart tutorial: https://angular.io/docs/ts/latest/quickstart.html
 
 ## Prerequisites
 The generated project has dependencies that require **Node 4.x.x and NPM 3.x.x**.
