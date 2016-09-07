@@ -1,23 +1,27 @@
 #!/usr/bin/env node
+
 var _       = require('lodash');
 var fs      = require('fs');
 var fse     = require('fs-extra');
+var path    = require('path');
 var chalk   = require('chalk');
 var mkdirp  = require('mkdirp');
 var program = require('commander');
-var path    = require('path');
 
-var ora = require('ora');
+/* Spinner declarations */
+var ora         = require('ora');
 var cliSpinners = require('cli-spinners');
-var spinner = ora(cliSpinners.dots);
+var spinner     = ora(cliSpinners.dots);
 
+/* Process (NODE) declarations */
 var childProcess = require('child_process');
-var exec = childProcess.exec;
-var execFile = childProcess.execFile;
+var exec         = childProcess.exec;
+var execFile     = childProcess.execFile;
 
+/* Variable declarations */
 var projectName, generateName, replaceRegex, frmSrc, newSrc,
 		replaceLocation, listModules, newImports, _list, createDir,
-		replaceRegex = /(declarations:[^]+?\]\,)/i;
+		labelToChange, _regexWords, _regexLine;
 
 /* Blueprint contents */
 var featureMap = {
@@ -90,10 +94,18 @@ var classCLI = {
 		spinner.text = chalk.green(text);
 	},
 
+	/**
+	 * Logs info (green)
+	 * @param info <string> Text to be displayed
+	 */
 	logInfo: function (info) {
 		console.log(chalk.green(info));
 	},
 
+	/**
+	 * Logs error (red)
+	 * @param error <string> Text to be displayed
+	 */
 	logError: function (error) {
 		console.log(chalk.red(error));
 	},
@@ -127,7 +139,7 @@ var classCLI = {
 				file_list.splice(-1, 1);
 				console.log('\n');
 				for (var i in file_list) {
-					console.log('   '+chalk.green('Created') + ' ' + file_list[i]);
+					console.log('   ' + chalk.green('Created') + ' ' + file_list[i]);
 				} console.log('\n');
 				classCLI.runLoading('Installing packages for tooling via NPM..');
 				classCLI.installModules(projectName);
@@ -184,7 +196,7 @@ var classCLI = {
 			var replacePipe     = replaceSelector.replace(/\{\!PIPENAME\}/g, args.pipeName);
 			var dataToWrite     = replacePipe.replace(/\{\!CLASSNAME\}/g, args.className);
 			classCLI.writeToFile(args.selector+'.'+args.feature+'.ts', dataToWrite);
-		} classCLI.insertFeatureToModule(args.className + args.feature.uCaseFirst(), createDir);
+		} classCLI.insertFeatureToModule(args, createDir);
 	},
 
 	/**
@@ -199,16 +211,30 @@ var classCLI = {
 		} cb(null);
 	},
 
-	parseModulesList: function (featureName, data) {
-		replaceLocation = data.match(replaceRegex);
-		_list = replaceLocation[0].match(/(?!declarations\b)\b\w+/ig);
+	/**
+	 * Parses and replaces target line for feature created
+	 * @param featureName <string> Formatted feature name
+	 * @param type <string> Raw feature type created
+	 * @param data <string> app.module source code
+	 */
+	parseModulesList: function (featureName, type, data) {
+		labelToChange = (type === 'service' ? 'providers' : 'declarations');
+		_regexLine = new RegExp("("+labelToChange+":[^]+?\]\,)", "i");
+		_regexWords = new RegExp("\(\(?!"+labelToChange+"\\b\)\\b\\w+\)", "ig");
+		replaceLocation = data.match(_regexLine);
+		_list = replaceLocation[0].match(_regexWords);
 		_list = _list === null ? [] : _list;
 		_list.push(featureName);
 		_list = _.uniq(_list, false);
-		newImports = "declarations: [ " + _list.join(", ") + " ],";
-		return data.replace(replaceRegex, newImports);
+		return data.replace(_regexLine, labelToChange + ": [ " + _list.join(", ") + " ],");
 	},
 
+	/**
+	 * Parses and replaces target line for imports section of module
+	 * @param featureName <string> Formatted feature name
+	 * @param fromSrc <string> Requesting target __dirname
+	 * @param data <string> app.module source code
+	 */
 	parseRequiresList: function (featureName, fromSrc, data) {
 		var requireStr = data.match(/(import \{[^\n]+?\;)/g);
 		var moduleStr  = requireStr.join("").match(/(\{[^\n]+?\})/g);
@@ -222,7 +248,8 @@ var classCLI = {
 	 * Rewrites <app.module.ts> to insert the newly created feature
 	 * @param featureName <string> Feature name to be created
 	 */
-	insertFeatureToModule: function (featureName, createDir) {
+	insertFeatureToModule: function (args, createDir) {
+		var featureName = args.className + args.feature.uCaseFirst();
 		classCLI.searchModuleFile( function (source) {
 			if (source === null) {
 				classCLI.logError('Application module not found!');
@@ -231,7 +258,7 @@ var classCLI = {
 				newSrc = path.resolve(source).replace(/\/app\.module\.ts/, '');
 				frmSrc = path.relative(newSrc, createDir);
 				fs.readFile(source, 'utf8', function (err, data) {
-					modRewrite = classCLI.parseModulesList(featureName, data);
+					modRewrite = classCLI.parseModulesList(featureName, args.feature, data);
 					reqRewrite = classCLI.parseRequiresList(featureName, frmSrc, modRewrite);
 					classCLI.writeToFile(source, reqRewrite);
 				});
@@ -241,22 +268,19 @@ var classCLI = {
 
 };
 
-// (import \{[^\n]+?\;)
-
 /**
  * Parse user input | Using NPM Commander
  * https://www.npmjs.com/package/commander
  */
 program
 	.option('-n, --new <project name>', 'Create a new project')
-	.option('-g, --generate <component|service|directive|pipe> <name>', 'Generates corresponding blueprint files')
-	.option('-t, --test', 'Used for testing')
+	.option('-g, --generate <component|service|directive|pipe> <name>', 'Generates @angular2 feature')
 	.parse(process.argv);
 
 /* Fetch | Assign input from user */
 projectName = program.new; generateName = program.generate;
 
-/* Fail fast: Display error in invalid blueprints */
+/* Fail fast: Display error on invalid blueprints */
 if (!program.new && (program.args.length < 1 || !(program.generate in featureMap))) {
 
 	classCLI.logError('Invalid blueprint: `' + generateName + '`');
@@ -277,11 +301,13 @@ if (!program.new && (program.args.length < 1 || !(program.generate in featureMap
 
 } else if (generateName && program.args.length > 0) {
 
+	var argValue = program.args[0];
+
 	classCLI.generateBlueprints({
-		feature: generateName.toLowerCase(),
-		selector:  program.args[0].toHyphen(),
-		pipeName: program.args[0].toCamelCase(),
-		className: program.args[0].toCamelCase().uCaseFirst()
+		feature:   generateName.toLowerCase(),
+		selector:  argValue.toHyphen(),
+		pipeName:  argValue.toCamelCase(),
+		className: argValue.toCamelCase().uCaseFirst()
 	});
 
 }
