@@ -32,14 +32,6 @@ You can use the `qs --generate` (or just `qs -g`) command to generate Angular co
 ```bash
 qs --generate component my-new-component
 qs -g component my-new-component # using the alias
-
-# components support relative path generation
-# if in the directory src/app/feature/ and you run
-qs -g component new-cmp
-# your component will be generated in src/app/feature/new-cmp
-# but if you were to run
-qs -g component ../newer-cmp
-# your component will be generated in src/app/newer-cmp
 ```
 You can find all possible blueprints in the table below:
 
@@ -49,3 +41,5 @@ Component | `qs -g component my-new-component`
 Directive | `qs -g directive my-new-directive`
 Pipe      | `qs -g pipe my-new-pipe`
 Service   | `qs -g service my-new-service`
+
+After generating features, it is automatically declared/ inserted on your `app/app/module.ts`.
