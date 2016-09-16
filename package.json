@@ -1,6 +1,6 @@
 {
   "name": "quickstart-cli",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A command line tool for creating initial files to quickstart Angular2 projects",
   "main": "index.js",
   "dependencies": {
