@@ -187,11 +187,12 @@ var classCLI = {
 	 * @param args <object> List of needed constants
 	 */
 	generateBlueprints: function (args) {
+		createDir = process.cwd() + '/{!DIRUP}' + args.selector + '.' + args.feature + '.ts';
 		if (args.feature === 'component') {
-			createDir = process.cwd() + '/' + args.selector;
+			createDir = createDir.replace(/\{\!DIRUP\}/, args.selector+'/')
 			classCLI.createComponentFiles(args);
 		} else {
-			createDir = process.cwd() + '/' + args.selector + '.' + args.feature + '.ts';
+			createDir = createDir.replace(/\{\!DIRUP\}/, '')
 			var replaceSelector = featureMap[args.feature].replace(/\{\!SELECTOR\}/g, args.selector);
 			var replacePipe     = replaceSelector.replace(/\{\!PIPENAME\}/g, args.pipeName);
 			var dataToWrite     = replacePipe.replace(/\{\!CLASSNAME\}/g, args.className);
@@ -244,6 +245,11 @@ var classCLI = {
 		}
 	},
 
+	formatSource: function (path) {
+		path = path.replace(/\.ts$/, '');
+		return path.charAt(0) !== '.' ? './'+path : path;
+	},
+
 	/**
 	 * Rewrites <app.module.ts> to insert the newly created feature
 	 * @param featureName <string> Feature name to be created
@@ -259,7 +265,7 @@ var classCLI = {
 				frmSrc = path.relative(newSrc, createDir);
 				fs.readFile(source, 'utf8', function (err, data) {
 					modRewrite = classCLI.parseModulesList(featureName, args.feature, data);
-					reqRewrite = classCLI.parseRequiresList(featureName, frmSrc, modRewrite);
+					reqRewrite = classCLI.parseRequiresList(featureName, classCLI.formatSource(frmSrc), modRewrite);
 					classCLI.writeToFile(source, reqRewrite);
 				});
 			}
@@ -296,7 +302,7 @@ if (!program.new && (program.args.length < 1 || !(program.generate in featureMap
 			}
 		});
 	} else {
-		classCLI.logError('Directory `' + projectName + '` already exists. Please try a new one');
+		classCLI.logError('Directory `' + projectName + '` already exists. Please try a new one! :)');
 	}
 
 } else if (generateName && program.args.length > 0) {
