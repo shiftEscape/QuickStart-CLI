@@ -27,13 +27,13 @@ var projectName, generateName, replaceRegex, frmSrc, newSrc,
 var featureMap = {
 	'component': {
 		'index.ts': "export * from './{!SELECTOR}.component';",
-		'{!SELECTOR}.component.ts': "import { Component, OnInit } from '@angular/core';\r\n@Component({\r\n   selector: 'app-{!SELECTOR}',\r\n   templateUrl: '{!SELECTOR}.component.html',\r\n   styleUrls: ['{!SELECTOR}.component.css']\r\n})\r\nexport class {!CLASSNAME}Component implements OnInit {\r\n\r\n   constructor() { }\r\n\r\n   ngOnInit() { }\r\n\r\n}",
-		'{!SELECTOR}.component.html': "<p>\r\n   {!SELECTOR} works!\r\n</p>",
+		'{!SELECTOR}.component.ts': "import { Component, OnInit } from '@angular/core';\r\n\r\n@Component({\r\n\tmoduleId: module.id,\r\n\tselector: 'app-{!SELECTOR}',\r\n\ttemplate: `{!SELECTOR} works!`,\r\n\tstyles: [ ]\r\n})\r\nexport class {!CLASSNAME}Component implements OnInit {\r\n\r\n\tconstructor() { }\r\n\r\n\tngOnInit() { }\r\n\r\n}",
+		'{!SELECTOR}.component.html': "<p>\r\n\t{!SELECTOR} works!\r\n</p>",
 		'{!SELECTOR}.component.css': "/* {!SELECTOR} stylesheet */"
 	},
-	'directive': "import { Directive } from '@angular/core';\r\n\r\n@Directive({\r\n   selector: '[{!SELECTOR}]'\r\n})\r\nexport class {!CLASSNAME} {\r\n\r\n   constructor() { }\r\n\r\n}",
-	'service': "import { Injectable } from '@angular/core';\r\n\r\n@Injectable()\r\nexport class {!CLASSNAME}Service {\r\n\r\n   constructor() { }\r\n\r\n}",
-	'pipe': "import { Pipe, PipeTransform } from '@angular/core';\r\n\r\n@Pipe({\r\n\tname: '{!PIPENAME}'\r\n})\r\nexport class {!CLASSNAME}Pipe implements PipeTransform {\r\n\r\n\ttransform(value: any, args?: any): any {\r\n\t\treturn null;\r\n}\r\n\r\n}",
+	'directive': "import { Directive } from '@angular/core';\r\n\r\n@Directive({\r\n\tselector: '[{!SELECTOR}]'\r\n})\r\nexport class {!CLASSNAME}Directive {\r\n\r\n\tconstructor() { }\r\n\r\n}",
+	'service': "import { Injectable } from '@angular/core';\r\n\r\n@Injectable()\r\nexport class {!CLASSNAME}Service {\r\n\r\n\tconstructor() { }\r\n\r\n}",
+	'pipe': "import { Pipe, PipeTransform } from '@angular/core';\r\n\r\n@Pipe({\r\n\tname: '{!PIPENAME}'\r\n})\r\nexport class {!CLASSNAME}Pipe implements PipeTransform {\r\n\r\n\ttransform(value: any, args?: any): any {\r\n\t\treturn null;\r\n\t}\r\n\r\n}",
 };
 
 /* Application module source map */
