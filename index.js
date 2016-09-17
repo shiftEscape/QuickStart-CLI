@@ -227,7 +227,7 @@ var classCLI = {
 		_list = _list === null ? [] : _list;
 		_list.push(featureName);
 		_list = _.uniq(_list, false);
-		return data.replace(_regexLine, labelToChange + ": [ " + _list.join(", ") + " ],");
+		return data.replace(_regexLine, labelToChange + ":    [ " + _list.join(", ") + " ],");
 	},
 
 	/**
